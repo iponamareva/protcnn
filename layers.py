@@ -20,19 +20,20 @@ from tensorflow.keras import activations
 from preprocessing import *
 from model_utils import *
 from constants import *
+from data_loaders import *
 
 class DataGenerator(Sequence):
     def __init__(self, mode, batch_size=256, dim=(100, 21), shuffle=True):
         
         print('Initializing data generator in mode', mode)
         if mode=='train':
-            kaggle_df = read_data(kaggle_data_path, mode)
+            kaggle_df = read_data(data_path=kaggle_data_path, partition=mode)
             google_df = load_all_files_in_dir(google_data_path+mode)
             self.df = merge_and_preprocess(kaggle_df, google_df)
+            self.df = self.df[:1000]
             print(len(self.df))
         else:
             print("Error: unknown mode")
-        self.df = df
 
         self.dim = dim
         self.batch_size = batch_size

@@ -25,16 +25,15 @@ from tensorflow.keras import layers
 from tensorflow.keras import activations
 
 from utils import dump_history, dump_histories, plot, plot_history, make_plots
-from data_loaders import read_data, calc_unique_cls, read_joined_data
+from data_loaders import calc_unique_cls
 from preprocessing import create_dict, process_activations_dict, load_file_as_df, load_all_files_in_dir, merge_and_preprocess, integer_encoding, encode_and_pad, expand_sparse_activations_from_df
+from preprocessing import preprocess_dfs,  make_dataset
 from layers import DataGenerator, residual_block, residual_block_st, app_hist
 from model_utils import loss_with_params, accuracy
-
+from constants import *
 
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 print("Imports successful")
-
-nclasses = 2000
 
 print('Loading and preprocessing data')
 
@@ -47,8 +46,11 @@ print('Loading and preprocessing data')
 #print('Num classes remained:', len(classes))
 
 
-#X_val = encode_and_pad(df_val)
-#y_val = expand_sparse_activations_from_df(df_val, alpha=0.125)
+kaggle_df = read_data(data_path=kaggle_data_path, partition='dev')
+google_df = load_all_files_in_dir(google_data_path+'dev')
+df_val = merge_and_preprocess(kaggle_df, google_df)
+X_val = encode_and_pad(df_val)
+y_val = expand_sparse_activations_from_df(df_val, alpha=0.125)
 
 params = {'dim': (100, 21),
           'batch_size': 256,
@@ -62,15 +64,6 @@ for batch in training_generator:
     break
 
 
-'''
-
-params = {'dim': (100, 21),
-          'batch_size': 4,
-          'shuffle': True}
-
-training_generator = DataGenerator(mode="train", train_sm=train_sm, POS_FOR_CLASSES=POS_FOR_CLASSES, **params)
-print('Len of training generator', len(training_generator))
-
 print('Preprocessing successful')
 
 exp_name = "exp_177"
@@ -78,8 +71,6 @@ exp_name = "exp_177"
 lr = 0.001
 filts = 16
 print("Exp:", exp_name)
-
-nclasses = 2000
 
 
 prop = 0.0
@@ -110,6 +101,5 @@ for batch in training_generator:
     print('batch generated')
 
 
-'''
 
 

@@ -17,7 +17,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 from tensorflow.keras import activations
 
-nclasses = 2000
+from constants import *
 
 def loss_with_params(true_ls_prop=1.0):
   def loss(yTrue, yPred):
