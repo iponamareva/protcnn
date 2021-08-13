@@ -37,15 +37,15 @@ print("Imports successful")
 
 print('Loading and preprocessing data')
 
-# df_train = read_joined_data('train', 'joined')
-# df_val = read_joined_data('dev', 'joined')
-#print('Train size:', len(df_train)) 
-#print('Val size:', len(df_val))
+X_train, y_train = preprocess_dfs("train")
+X_val, y_val = preprocess_dfs("dev")
 
-#classes = df_train['class_index'].value_counts()[:nclasses].index.tolist()
-#print('Num classes remained:', len(classes))
+train_dataset = make_dataset(X_train, y_train)
+val_dataset = make_dataset(X_val, y_val)
 
 
+
+'''
 kaggle_df = read_data(data_path=kaggle_data_path, partition='dev')
 google_df = load_all_files_in_dir(google_data_path+'dev')
 df_val = merge_and_preprocess(kaggle_df, google_df)
@@ -65,7 +65,7 @@ for batch in training_generator:
 
 
 print('Preprocessing successful')
-
+'''
 exp_name = "exp_177"
 
 lr = 0.001
@@ -88,17 +88,13 @@ model.compile(optimizer='adam', loss=loss_with_params(prop), metrics=[accuracy])
 print(model.summary())
 #print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-history = model.fit(x=training_generator,
-                    validation_data=(X_val, y_val),
+history = model.fit(x=train_dataset,
+                    # validation_data=(X_val, y_val),
+                    validation_data=val_dataset,
                     use_multiprocessing=True,
                     workers=6,
-                    epochs=2)
+                    epochs=1)
 
-for batch in training_generator:
-    X, y = batch
-    print(X.shape, y.shape)
-    break
-    print('batch generated')
 
 
 

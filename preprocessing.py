@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import pandas as pd
+import os
 from os import listdir
 from os.path import isfile, join
 from collections import defaultdict
@@ -27,6 +28,7 @@ def create_dict(codes):
 char_dict = create_dict(codes)
 
 def densify(X, y):
+    X = tf.one_hot(X, 21, on_value=1, off_value=0)
     return X, tf.sparse.to_dense(y)
 
 def make_dataset(X, y, batch_size=256):
@@ -178,7 +180,9 @@ def preprocess_dfs(mode="train"):
     # kaggle_data_path = pref+"kaggle/random_split"
     # google_data_path = pref+"blundell_seed_ensemble_activations/"
 
-    kaggle_df = read_data(kaggle_data_path, mode)
+    POS_FOR_CLASSES, classes_list = process_activations_dict()
+
+    kaggle_df = read_data(mode, kaggle_data_path)
     google_df = load_all_files_in_dir(google_data_path+mode)
 
     df_res = kaggle_df.merge(google_df, how='left', 
@@ -203,9 +207,9 @@ def preprocess_dfs(mode="train"):
         x_encoded = integer_encoding(df)
         max_length = 100
         x_padded = pad_sequences(x_encoded, maxlen=max_length, padding='post', truncating='post')
-        x_ohe = to_categorical(x_padded)
+        # x_ohe = to_categorical(x_padded)
 
-        return x_ohe
+        return x_padded
     
     def get_indices_and_values(df):
         indices, values = [], []
