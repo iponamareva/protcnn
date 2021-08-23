@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import argparse
 
 import json
 import os
@@ -24,77 +25,59 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 from tensorflow.keras import activations
 
-from utils import dump_history, dump_histories, plot, plot_history, make_plots
+from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_log, app_hist
 from data_loaders import calc_unique_cls
-from preprocessing import create_dict, process_activations_dict, load_file_as_df, load_all_files_in_dir, merge_and_preprocess, integer_encoding, encode_and_pad, expand_sparse_activations_from_df
 from preprocessing import preprocess_dfs,  make_dataset
-from layers import DataGenerator, residual_block, residual_block_st, app_hist
+from layers import residual_block, residual_block_st, make_model
 from model_utils import loss_with_params, accuracy
 from constants import *
 
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 print("Imports successful")
 
+parser = argparse.ArgumentParser(description="Arguments for run")
+parser.add_argument("-na", "--exp-name", type=str)
+parser.add_argument("-ep", "--epochs", nargs="?", type=int, default=10)
+parser.add_argument("-tp", "--true-prop", nargs="?", type=float, default=0.0)
+parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0001)
+parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=16)
+parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
+
+args = parser.parse_args()
+
 print('Loading and preprocessing data')
 
-X_train, y_train = preprocess_dfs("train")
-X_val, y_val = preprocess_dfs("dev")
+X_train, y_train = preprocess_dfs("train", alpha=args.alpha)
+X_val, y_val = preprocess_dfs("dev", alpha=args.alpha)
 
 train_dataset = make_dataset(X_train, y_train)
 val_dataset = make_dataset(X_val, y_val)
 
+print("Experiment name:", args.exp_name)
 
+model = make_model(args)
+model.compile(optimizer='adam', loss=loss_with_params(args.true_prop), metrics=[accuracy])
 
-'''
-kaggle_df = read_data(data_path=kaggle_data_path, partition='dev')
-google_df = load_all_files_in_dir(google_data_path+'dev')
-df_val = merge_and_preprocess(kaggle_df, google_df)
-X_val = encode_and_pad(df_val)
-y_val = expand_sparse_activations_from_df(df_val, alpha=0.125)
+args_dict = {"exp_name" : args.exp_name,
+        "epochs" : args.epochs,
+        "lr" : args.learning_rate,
+        "true p" : args.true_prop,
+        "filters" : args.num_filters,
+        "alpha" : args.alpha}
 
-params = {'dim': (100, 21),
-          'batch_size': 256,
-          'shuffle': True}
+log_file_name = "training_logs/"+args.exp_name+".log"
 
-training_generator = DataGenerator("train", **params)
-
-for batch in training_generator:
-    X, y = batch
-    print(X.shape, y.shape)
-    break
-
-
-print('Preprocessing successful')
-'''
-exp_name = "exp_177"
-
-lr = 0.001
-filts = 16
-print("Exp:", exp_name)
-
-
-prop = 0.0
-x_student_input = Input(shape=(100, 21))
-conv = Conv1D(filts, 1, padding='same')(x_student_input)
-res1 = residual_block_st(conv, filts, 3)
-x = MaxPooling1D(3)(res1)
-x = Dropout(0.5)(x)
-x = Flatten()(x)
-x_student_output = Dense(nclasses, activation='softmax', kernel_regularizer=l2(0.0001))(x) 
-
-model = Model(inputs=x_student_input, outputs=x_student_output)
-model.compile(optimizer='adam', loss=loss_with_params(prop), metrics=[accuracy])
-
-print(model.summary())
-#print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+make_training_log(args_dict, log_file_name)
+with open(log_file_name, "a") as f:
+    print(model.summary(), file=f)
 
 history = model.fit(x=train_dataset,
-                    # validation_data=(X_val, y_val),
                     validation_data=val_dataset,
                     use_multiprocessing=True,
                     workers=6,
-                    epochs=1)
+                    epochs=args.epochs)
 
+dump_history(history, "histories/"+args.exp_name+".pkl")
 
 
 

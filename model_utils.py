@@ -21,10 +21,9 @@ from constants import *
 
 def loss_with_params(true_ls_prop=1.0):
   def loss(yTrue, yPred):
-        # if yTrue.shape[1] > nclasses:
-            # print('!!!removing first nclasses elems')
-      yPredictions = yTrue[:, nclasses:]
-      yTrue = yTrue[:, :nclasses]
+      
+      yPredictions = yTrue[:, NCL:]
+      yTrue = yTrue[:, :NCL]
       
       loss2 = tf.keras.losses.categorical_crossentropy(yPredictions, yPred)
       loss1 = tf.keras.losses.categorical_crossentropy(yTrue, yPred)
@@ -35,6 +34,5 @@ def loss_with_params(true_ls_prop=1.0):
 
 
 def accuracy(y_true, y_pred):
-    # if y_true.shape[1] > nclasses:
-    y_true = y_true[:, :nclasses]
+    y_true = y_true[:, :NCL]
     return tf.keras.metrics.categorical_accuracy(y_true, y_pred)

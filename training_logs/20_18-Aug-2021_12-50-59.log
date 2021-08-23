@@ -1,0 +1,7 @@
+exp_name 	 20_18-Aug-2021_12-50-59
+epochs 	 100
+lr 	 0.0001
+true p 	 1.0
+filters 	 256
+alpha 	 1.0
+None

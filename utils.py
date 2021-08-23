@@ -1,6 +1,26 @@
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from constants import *
+
+def app_hist(f, losses, accs, val_losses, val_accs, th, th2):
+    with open(f, 'rb') as file:
+        hist = pickle.load(file)
+    losses.append(hist['loss'][th:th2])
+    accs.append(hist['accuracy'][th:th2])
+    val_losses.append(hist['val_loss'][th:th2])
+    val_accs.append(hist['val_accuracy'][th:th2])
+    return losses, accs, val_losses, val_accs
+
+
+def make_training_log(d, filename):
+  with open(filename, "w") as f:
+    for key in d:
+        print(key, "\t", d[key], file=f)
+
+    print("NCL\t", NCL)
 
 def renorm(v, alpha=1):
     p = np.power(v, [alpha])
