@@ -38,11 +38,11 @@ def residual_block(data, filters, d_rate):
   shortcut = data
   bn1 = BatchNormalization()(data)
   act1 = Activation('relu')(bn1)
-  conv1 = Conv1D(336, 7, dilation_rate=d_rate, padding='same', kernel_regularizer=l2(0.001))(act1)
+  conv1 = Conv1D(filters, 1, dilation_rate=d_rate, padding='same', kernel_regularizer=l2(0.001))(act1)
   bn2 = BatchNormalization()(conv1)
   act2 = Activation('relu')(bn2)
 
-  conv2 = Conv1D(384, 1, padding='same', kernel_regularizer=l2(0.001))(act2)
+  conv2 = Conv1D(filters, 3, padding='same', kernel_regularizer=l2(0.001))(act2)
 
   x = Add()([conv2, shortcut])
   return x
@@ -60,16 +60,13 @@ def residual_block_st(data, filters, d_rate):
   return x
 
 def make_model(args):
-  x_student_input = Input(shape=(180, 21))
+  x_student_input = Input(shape=(150, 21))
   conv = Conv1D(args.num_filters, 1, padding='same')(x_student_input)
-  # res1 = residual_block_st(conv, args.num_filters, 3)
-  res1 = residual_block(conv, args.num_filters, 5)
-  res2 = residual_block(res1, args.num_filters, 15)
-  res3 = residual_block(res2, args.num_filters, 25)
-  res4 = residual_block(res3, args.num_filters, 35)
-  res5 = residual_block(res4, args.num_filters, 55)
 
-  x = MaxPooling1D(3)(res5)
+  res1 = residual_block(conv, args.num_filters, 2)
+  res2 = residual_block(res1, args.num_filters, 3)
+
+  x = MaxPooling1D(3)(res2)
   x = Dropout(0.5)(x)
   x = Flatten()(x)
   x_student_output = Dense(NCL, activation='softmax', kernel_regularizer=l2(args.learning_rate))(x)

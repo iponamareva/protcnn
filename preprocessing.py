@@ -32,7 +32,7 @@ def densify(X, y):
     X = tf.one_hot(X, 21, on_value=1, off_value=0)
     return X, tf.sparse.to_dense(y)
 
-def make_dataset(X, y, batch_size=28):
+def make_dataset(X, y, batch_size=256):
     dataset = Dataset.from_tensor_slices((X, y))
     dataset = dataset.batch(256)
     dataset = dataset.map(densify)
@@ -176,7 +176,7 @@ def expand_sparse_activations_from_df(df, n_classes=nclasses, alpha=0.125):
     return res
 
 
-def preprocess_dfs(mode="train", max_length=180, alpha=1.0):
+def preprocess_dfs(mode="train", max_length=150, alpha=1.0):
     TRUNCATED_DATA = (NCL < NCL_MAX)
 
     POS_FOR_CLASSES, classes_list = process_activations_dict()

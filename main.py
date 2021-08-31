@@ -25,6 +25,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 from tensorflow.keras import activations
 from tensorflow.keras.callbacks import CSVLogger
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_log, app_hist
 from data_loaders import calc_unique_cls
@@ -75,11 +76,20 @@ with open(log_file_name, "a") as f:
 filename= args.exp_name + '.csv'
 history_logger = CSVLogger(filename, separator=",", append=True)
 
+os.mkdir("../model_weights/" + args.exp_name)
+checkpoint_path = "../model_weights/"+ args.exp_name + "cp-{epoch:04d}.ckpt"
+
+cp_callback = ModelCheckpoint(
+    filepath=checkpoint_path,
+    verbose=0, save_best_only=False,
+    save_weights_only=True, mode='auto', save_freq='epoch'
+)
+
 history = model.fit(x=train_dataset,
                     validation_data=val_dataset,
                     use_multiprocessing=True,
                     workers=6,
-                    callbacks=[history_logger],
+                    callbacks=[cp_callback, history_logger],
                     epochs=args.epochs)
 
 dump_history(history, "histories/"+args.exp_name+".pkl")
