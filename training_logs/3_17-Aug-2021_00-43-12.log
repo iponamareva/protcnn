@@ -1,7 +1,0 @@
-exp_name 	 3_17-Aug-2021_00-43-12
-epochs 	 200
-lr 	 0.0001
-true p 	 0.0
-filters 	 16
-alpha 	 0.125
-None

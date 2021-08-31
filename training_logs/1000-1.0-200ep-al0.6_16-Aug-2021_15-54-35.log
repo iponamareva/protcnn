@@ -1,7 +1,0 @@
-exp_name 	 1000-1.0-200ep-al0.6_16-Aug-2021_15-54-35
-epochs 	 200
-lr 	 0.0001
-true p 	 0.0
-filters 	 16
-alpha 	 0.6
-None

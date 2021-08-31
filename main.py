@@ -24,6 +24,7 @@ from tensorflow.keras.layers import Embedding
 from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 from tensorflow.keras import activations
+from tensorflow.keras.callbacks import CSVLogger
 
 from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_log, app_hist
 from data_loaders import calc_unique_cls
@@ -71,10 +72,14 @@ make_training_log(args_dict, log_file_name)
 with open(log_file_name, "a") as f:
     print(model.summary(), file=f)
 
+filename= args.exp_name + '.csv'
+history_logger = CSVLogger(filename, separator=",", append=True)
+
 history = model.fit(x=train_dataset,
                     validation_data=val_dataset,
                     use_multiprocessing=True,
                     workers=6,
+                    callbacks=[history_logger],
                     epochs=args.epochs)
 
 dump_history(history, "histories/"+args.exp_name+".pkl")
