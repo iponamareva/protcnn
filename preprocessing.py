@@ -176,7 +176,7 @@ def expand_sparse_activations_from_df(df, n_classes=nclasses, alpha=0.125):
     return res
 
 
-def preprocess_dfs(mode="train", max_length=150, alpha=1.0):
+def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
     TRUNCATED_DATA = (NCL < NCL_MAX)
 
     POS_FOR_CLASSES, classes_list = process_activations_dict()

@@ -44,13 +44,13 @@ parser.add_argument("-tp", "--true-prop", nargs="?", type=float, default=0.0)
 parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0001)
 parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=16)
 parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
-
+parser.agg_argument("-ml", "max-length", nargs="?", type=int, default=100)
 args = parser.parse_args()
 
 print('Loading and preprocessing data')
 
-X_train, y_train = preprocess_dfs("train", alpha=args.alpha)
-X_val, y_val = preprocess_dfs("dev", alpha=args.alpha)
+X_train, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
+X_val, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
 
 train_dataset = make_dataset(X_train, y_train)
 val_dataset = make_dataset(X_val, y_val)
@@ -65,7 +65,8 @@ args_dict = {"exp_name" : args.exp_name,
         "lr" : args.learning_rate,
         "true p" : args.true_prop,
         "filters" : args.num_filters,
-        "alpha" : args.alpha}
+        "alpha" : args.alpha,
+        "max-length" : args.max_length}
 
 log_file_name = "training_logs/"+args.exp_name+".log"
 

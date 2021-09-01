@@ -12,6 +12,7 @@ parser.add_argument("-tp", "--true-prop", nargs="?", type=float, default=0.0)
 parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0001)
 parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=256)
 parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
+parser.add_argument("-ml", "--max-length", nargs="?", type=int, default=100)
 
 args = parser.parse_args()
 dateTimeObj = datetime.now()
@@ -21,6 +22,7 @@ exp_name += dateTimeObj.strftime("%d-%b-%Y_%H-%M-%S")
 
 
 
-command = f'bsub -M {args.memory} -P gpu -gpu - "python3 main.py -na {exp_name} -ep {args.epochs} -tp {args.true_prop} -lr {args.learning_rate} -fs {args.num_filters} -al {args.alpha}"'
+command = f'bsub -M {args.memory} -P gpu -gpu - "python3 main.py -na {exp_name} -ep {args.epochs} -tp {args.true_prop} -lr {args.learning_rate} -fs {args.num_filters} -al {args.alpha} -ml {args.max_length}"'
+
 print("***Executing:", command)
 os.system(command)
