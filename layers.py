@@ -60,7 +60,7 @@ def residual_block_st(data, filters, d_rate):
   return x
 
 def make_model(args):
-  x_student_input = Input(shape=(150, 21))
+  x_student_input = Input(shape=(args.max_langth, 21))
   conv = Conv1D(args.num_filters, 1, padding='same')(x_student_input)
 
   res1 = residual_block(conv, args.num_filters, 2)
