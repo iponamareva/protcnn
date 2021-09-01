@@ -5,3 +5,6 @@ NCL = NCL_MAX
 nclasses = NCL
 kaggle_data_path = "../random_split"
 google_data_path = "../blundell_seed_ensemble_activations/"
+
+LOG_DIR = "../training_logs"
+HIST_DIR = "../histories"

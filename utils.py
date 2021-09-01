@@ -1,3 +1,4 @@
+import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,8 +16,12 @@ def app_hist(f, losses, accs, val_losses, val_accs, th, th2):
     return losses, accs, val_losses, val_accs
 
 
-def make_training_log(d, filename):
-  with open(filename, "w") as f:
+def make_training_log(args):
+  filename = args.exp_name + ".log"
+  filepath = os.path.join(LOG_DIR, filename)
+  d = vars(args)
+
+  with open(filepath, "w") as f:
     for key in d:
         print(key, "\t", d[key], file=f)
 

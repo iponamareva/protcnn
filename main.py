@@ -10,20 +10,8 @@ from os.path import isfile, join
 from collections import defaultdict
 from tqdm import tqdm
 
-from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.constraints import max_norm
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.layers import Input, Dense, Dropout, Flatten, Activation
-from tensorflow.keras.layers import Conv1D, Add, MaxPooling1D, BatchNormalization
-from tensorflow.keras.layers import Embedding, Bidirectional, GlobalMaxPooling1D
-from tensorflow.keras.layers import Embedding
 from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
-from tensorflow.keras import activations
 from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.callbacks import ModelCheckpoint
 
@@ -44,7 +32,7 @@ parser.add_argument("-tp", "--true-prop", nargs="?", type=float, default=0.0)
 parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0001)
 parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=16)
 parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
-parser.agg_argument("-ml", "max-length", nargs="?", type=int, default=100)
+parser.add_argument("-ml", "max-length", nargs="?", type=int, default=100)
 args = parser.parse_args()
 
 print('Loading and preprocessing data')
@@ -60,19 +48,7 @@ print("Experiment name:", args.exp_name)
 model = make_model(args)
 model.compile(optimizer='adam', loss=loss_with_params(args.true_prop), metrics=[accuracy])
 
-args_dict = {"exp_name" : args.exp_name,
-        "epochs" : args.epochs,
-        "lr" : args.learning_rate,
-        "true p" : args.true_prop,
-        "filters" : args.num_filters,
-        "alpha" : args.alpha,
-        "max-length" : args.max_length}
-
-log_file_name = "training_logs/"+args.exp_name+".log"
-
-make_training_log(args_dict, log_file_name)
-with open(log_file_name, "a") as f:
-    print(model.summary(), file=f)
+make_training_log(args)
 
 filename= args.exp_name + '.csv'
 history_logger = CSVLogger(filename, separator=",", append=True)
@@ -93,7 +69,8 @@ history = model.fit(x=train_dataset,
                     callbacks=[cp_callback, history_logger],
                     epochs=args.epochs)
 
-dump_history(history, "histories/"+args.exp_name+".pkl")
+dump_history(history, os.path.join(HIST_DIR, args.exp_name+".pkl"))
+
 
 
 
