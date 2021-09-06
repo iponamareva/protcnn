@@ -48,19 +48,8 @@ def residual_block(data, filters, d_rate):
   return x
 
 
-def residual_block_st(data, filters, d_rate):
-  shortcut = data
-  bn1 = BatchNormalization()(data)
-  act1 = Activation('relu')(bn1)
-  conv1 = Conv1D(filters, 1, dilation_rate=d_rate, padding='same', kernel_regularizer=l2(0.001))(act1)
-  bn2 = BatchNormalization()(conv1)
-  act2 = Activation('relu')(bn2)
-  conv2 = Conv1D(filters, 3, padding='same', kernel_regularizer=l2(0.001))(act2)
-  x = Add()([conv2, shortcut])
-  return x
-
 def make_model(args):
-  x_student_input = Input(shape=(args.max_langth, 21))
+  x_student_input = Input(shape=(args.max_length, 21))
   conv = Conv1D(args.num_filters, 1, padding='same')(x_student_input)
 
   res1 = residual_block(conv, args.num_filters, 2)

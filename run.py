@@ -19,10 +19,10 @@ dateTimeObj = datetime.now()
 exp_name = args.exp_name
 exp_name += "_"
 exp_name += dateTimeObj.strftime("%d-%b-%Y_%H-%M-%S")
+logname = "joblogs/"+exp_name+".log"
 
 
-
-command = f'bsub -M {args.memory} -P gpu -gpu - "python3 main.py -na {exp_name} -ep {args.epochs} -tp {args.true_prop} -lr {args.learning_rate} -fs {args.num_filters} -al {args.alpha} -ml {args.max_length}"'
+command = f'bsub -M {args.memory} -o {logname} -P gpu -gpu - "python3 main.py -na {exp_name} -ep {args.epochs} -tp {args.true_prop} -lr {args.learning_rate} -fs {args.num_filters} -al {args.alpha} -ml {args.max_length}"'
 
 print("***Executing:", command)
 os.system(command)

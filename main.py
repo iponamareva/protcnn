@@ -1,3 +1,5 @@
+print('Starting', flush=True)
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -15,27 +17,29 @@ from tensorflow.keras import layers
 from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.callbacks import ModelCheckpoint
 
+print("Imports successful", flush=True)
+
 from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_log, app_hist
-from data_loaders import calc_unique_cls
-from preprocessing import preprocess_dfs,  make_dataset
-from layers import residual_block, residual_block_st, make_model
 from model_utils import loss_with_params, accuracy
+from preprocessing import preprocess_dfs,  make_dataset
+from layers import make_model
 from constants import *
 
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-print("Imports successful")
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')), flush=True)
 
 parser = argparse.ArgumentParser(description="Arguments for run")
-parser.add_argument("-na", "--exp-name", type=str)
+parser.add_argument("-na", "--exp-name", nargs="?", type=str, default="exp")
 parser.add_argument("-ep", "--epochs", nargs="?", type=int, default=10)
 parser.add_argument("-tp", "--true-prop", nargs="?", type=float, default=0.0)
 parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0001)
 parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=16)
 parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
-parser.add_argument("-ml", "max-length", nargs="?", type=int, default=100)
+parser.add_argument("-ml", "--max-length", nargs="?", type=int, default=100)
+
 args = parser.parse_args()
 
-print('Loading and preprocessing data')
+print('Loading and preprocessing data', flush=True)
+
 
 X_train, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
 X_val, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
@@ -70,8 +74,6 @@ history = model.fit(x=train_dataset,
                     epochs=args.epochs)
 
 dump_history(history, os.path.join(HIST_DIR, args.exp_name+".pkl"))
-
-
 
 
 
