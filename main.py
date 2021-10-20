@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import argparse
+import time
 
 import json
 import os
@@ -16,14 +17,16 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.metrics import Mean
+from tensorflow import GradientTape
+from tensorflow.keras.layers import Conv1D, Add, MaxPooling1D, BatchNormalization
 
-print("Imports successful", flush=True)
-
-from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_log, app_hist
-from model_utils import loss_with_params, accuracy
+from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_info, app_hist
+from model_utils import loss_with_params, accuracy, AccCustomMetric
 from preprocessing import preprocess_dfs,  make_dataset
-from layers import make_model
 from constants import *
+from layers import ProtCNNModel
 
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')), flush=True)
 
@@ -35,45 +38,75 @@ parser.add_argument("-lr", "--learning-rate", nargs="?", type=float, default=0.0
 parser.add_argument("-fs", "--num-filters", nargs="?", type=int, default=16)
 parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
 parser.add_argument("-ml", "--max-length", nargs="?", type=int, default=100)
+parser.add_argument("-ks", "--kernel-size", nargs="?", type=int, default=5)
+parser.add_argument("-bs", "--batch-size", nargs="?", type=int, default=256)
 
 args = parser.parse_args()
 
 print('Loading and preprocessing data', flush=True)
-
-
-X_train, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
-X_val, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
-
-train_dataset = make_dataset(X_train, y_train)
-val_dataset = make_dataset(X_val, y_val)
-
 print("Experiment name:", args.exp_name)
 
-model = make_model(args)
-model.compile(optimizer='adam', loss=loss_with_params(args.true_prop), metrics=[accuracy])
+X_train, X_train_lengths, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
+X_val, X_val_lengths, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
+train_dataset, TRAIN_SIZE = make_dataset(X_train, X_train_lengths, y_train, args=args)
+val_dataset, VAL_SIZE = make_dataset(X_val, X_val_lengths, y_val, args=args)
 
-make_training_log(args)
+print("TRAIN_SIZE:", TRAIN_SIZE, "VAL_SIZE:", VAL_SIZE)
 
-filename= args.exp_name + '.csv'
+make_training_info(args)
+filename = args.exp_name + ".log"
+filepath = os.path.join(LOG_DIR, filename)
+
+filename = CSV_LOGS_DIR + '/' + args.exp_name + '.csv'
 history_logger = CSVLogger(filename, separator=",", append=True)
 
-os.mkdir("../model_weights/" + args.exp_name)
-checkpoint_path = "../model_weights/"+ args.exp_name + "cp-{epoch:04d}.ckpt"
 
-cp_callback = ModelCheckpoint(
-    filepath=checkpoint_path,
-    verbose=0, save_best_only=False,
-    save_weights_only=True, mode='auto', save_freq='epoch'
-)
+''' MAKE AND COMPILE MODEL '''
+model = ProtCNNModel(args)
 
-history = model.fit(x=train_dataset,
-                    validation_data=val_dataset,
-                    use_multiprocessing=True,
-                    workers=6,
-                    callbacks=[cp_callback, history_logger],
-                    epochs=args.epochs)
+for batch in val_dataset.take(1):
+  X, X_l, y = batch
+  preds = model((tf.cast(X, tf.float32), X_l)) 
+  print('COUNT PARAMS', model.count_params())
+  
+optimizer = Adam(learning_rate=args.learning_rate)
+ce_loss_fn = loss_with_params(args.true_prop)
+loss_metric = Mean()
+train_acc_metric = AccCustomMetric()
+val_acc_metric = AccCustomMetric()
 
-dump_history(history, os.path.join(HIST_DIR, args.exp_name+".pkl"))
+for epoch in range(args.epochs):
+  print("Start of epoch %d" % (epoch,))
+  start_time = time.time()
 
+  for step, batch_train in enumerate(train_dataset):
+    X, X_lengths, y = batch_train
+
+    with GradientTape() as tape:
+      preds = model((tf.cast(X, tf.float32), X_lengths), training=True)
+      loss = ce_loss_fn(y, preds)
+    
+    grads = tape.gradient(loss, model.trainable_weights)
+    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+    # update metric
+    train_acc_metric.update_state(y, preds)
+    loss_metric(loss)
+
+    if step % 100 == 0:
+      print("step %d: mean loss = %.4f" % (step, loss_metric.result()), flush=True)
+       
+  train_acc = train_acc_metric.result()
+  train_acc_metric.reset_states()
+
+  for step, batch_val in enumerate(val_dataset):
+    X_val, X_lengths_val, y_val = batch_val
+    preds_val = model((tf.cast(X_val, tf.float32), X_lengths_val), training=False)
+    val_acc_metric.update_state(y_val, preds_val)
+  
+  val_acc = val_acc_metric.result()
+  val_acc_metric.reset_states()
+
+  print("Training acc over epoch: %.4f" % (float(train_acc) / TRAIN_SIZE,), "Validation acc: %.4f" % (float(val_acc) / VAL_SIZE,), "Time taken for epoch: %.2fs" % (time.time() - start_time))
 
 

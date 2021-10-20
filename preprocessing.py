@@ -13,7 +13,7 @@ from tensorflow.data import Dataset
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.utils import to_categorical
 
-from utils import renorm
+from utils import renorm, renorm_from_sigmoid
 from constants import *
 
 codes = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L',
@@ -28,15 +28,17 @@ def create_dict(codes):
 
 char_dict = create_dict(codes)
 
-def densify(X, y):
-    X = tf.one_hot(X, 21, on_value=1, off_value=0)
-    return X, tf.sparse.to_dense(y)
 
-def make_dataset(X, y, batch_size=256):
-    dataset = Dataset.from_tensor_slices((X, y))
-    dataset = dataset.batch(256)
+def densify(X, X_lengths, y):
+    X = tf.one_hot(X, 21, on_value=1, off_value=0)
+    return X, X_lengths, tf.sparse.to_dense(y)
+
+
+def make_dataset(X, X_lengths, y, args):
+    dataset = Dataset.from_tensor_slices((X, X_lengths, y))
+    dataset = dataset.batch(args.batch_size)
     dataset = dataset.map(densify)
-    return dataset
+    return dataset, len(X_lengths)
 
 
 def process_activations_dict():
@@ -50,6 +52,7 @@ def process_activations_dict():
 
     return d, data
 
+
 def read_data(partition, data_path = 'random_split/'):
   data = []
   for fn in os.listdir(os.path.join(data_path, partition)):
@@ -57,28 +60,30 @@ def read_data(partition, data_path = 'random_split/'):
       data.append(pd.read_csv(f, index_col=None))
   return pd.concat(data)
 
+
 def read_joined_data(partition, data_path):
   with open(os.path.join(data_path, partition+'.csv')) as f:
     data = pd.read_csv(f, index_col=None)
     return data
 
+
 def load_file_as_df(fname):
     ''' loading single file as a pd dataframe '''
-
-
-    seq_names, seqs, acts = [], [], []
+    seq_names, seqs, acts, seq_lenghts = [], [], [], []
     with open(fname, 'r') as f:
         for line in f:
             data = json.loads(line)
             seqs.append(data['sequence'])
             seq_names.append(data['sequence_name'])
             acts.append(data['activations'])
+            seq_lenghts.append(len(data['sequence']))
 
     res = {'sequence_name' : seq_names,
+           'sequence_length' : seq_lenghts,
            'sequence' : seqs,
            'activations' : acts}
 
-    df = pd.DataFrame(res, columns = ['sequence_name', 'sequence', 'activations'])
+    df = pd.DataFrame(res, columns = ['sequence_name', 'sequence_length', 'sequence', 'activations'])
 
     return df
 
@@ -113,8 +118,10 @@ def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
                                         left_on='sequence_name', 
                                         right_on='sequence_name',
                                         suffixes=('','_conc'))
+    print("DEBUG preprocess dfs Mode:", mode, len(kaggle_df), len(google_df), len(df_res))
     df_res.drop(columns=['sequence_conc', 'aligned_sequence', 'family_id'], inplace=True)
     df_res.dropna(inplace=True)
+    print("DEBUG preprocess dfs Mode:", mode, len(kaggle_df), len(google_df), len(df_res))
     df_res = df_res.reset_index()
 
     if TRUNCATED_DATA:
@@ -128,8 +135,6 @@ def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
             class_name = class_name.split('.')[0]
             cur_pos = POS_FOR_CLASSES[class_name]
             UPD_POS_FOR_CLASSES[cur_pos] = i
-        
-    
 
     def integer_encoding(df):
         encode_list = []
@@ -144,8 +149,8 @@ def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
     def encode_and_pad(df):
         x_encoded = integer_encoding(df)
         x_padded = pad_sequences(x_encoded, maxlen=max_length, padding='post', truncating='post')
-
-        return x_padded
+        
+        return x_padded, list(df['sequence_length'])
     
     def get_indices_and_values(df):
         indices, values = [], []
@@ -184,14 +189,17 @@ def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
                 new_indices = sorted(new_indices, key=lambda x: x[1])
                 indices.extend(new_indices)
 
-            new_values = renorm(new_values, alpha=alpha)
+            new_values = renorm_from_sigmoid(new_values, alpha=alpha)
             values.extend(new_values)
 
         print(len(indices), len(values), shape)
         return indices, values, shape
 
-    X = encode_and_pad(df_res)
+    X, X_lengths = encode_and_pad(df_res)
+    print("X, X_LENGTHS", X.shape, len(X_lengths))
+    print("Len df res", len(df_res))
+
     indices, values, shape = get_indices_and_values(df_res)
     y = SparseTensor(indices, values, shape)
 
-    return X, y
+    return X, X_lengths, y
