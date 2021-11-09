@@ -203,3 +203,60 @@ def preprocess_dfs(mode="train", max_length=100, alpha=1.0):
     y = SparseTensor(indices, values, shape)
 
     return X, X_lengths, y
+
+
+def preprocess_dfs_only_true(mode="train", max_length=100, alpha=1.0):
+    POS_FOR_CLASSES, classes_list = process_activations_dict()
+    UPD_POS_FOR_CLASSES = {}
+
+    kaggle_df = read_data(mode, kaggle_data_path)
+    google_df = load_all_files_in_dir(google_data_path+mode)
+
+    df_res = kaggle_df.merge(google_df, how='left',
+                                        left_on='sequence_name',
+                                        right_on='sequence_name',
+                                        suffixes=('','_conc'))
+    print("DEBUG preprocess dfs Mode:", mode, len(kaggle_df), len(google_df), len(df_res))
+    df_res.drop(columns=['sequence_conc', 'aligned_sequence', 'family_id'], inplace=True)
+    df_res.dropna(inplace=True)
+    print("DEBUG preprocess dfs Mode:", mode, len(kaggle_df), len(google_df), len(df_res))
+    df_res = df_res.reset_index()
+
+    def integer_encoding(df):
+        encode_list = []
+        for row in df['sequence'].values: # 'sequence'
+            row_encode = []
+            for code in row:
+                row_encode.append(char_dict.get(code, 0))
+            encode_list.append(np.array(row_encode))
+
+        return encode_list
+
+    def encode_and_pad(df):
+        x_encoded = integer_encoding(df)
+        x_padded = pad_sequences(x_encoded, maxlen=max_length, padding='post', truncating='post')
+
+        return x_padded, list(df['sequence_length'])
+
+    def get_indices_and_values(df):
+        indices, values = [], []
+        class_labels = []
+        shape = [len(df), 2 * NCL]
+        print("Making SparseTensor of shape:", shape)
+
+        for i, row in df.iterrows():
+            class_name = row['family_accession'].split('.')[0]
+            class_index = POS_FOR_CLASSES[class_name]
+
+            class_labels.append(class_index)
+
+        
+        return np.array(class_labels)
+
+    X, X_lengths = encode_and_pad(df_res)
+    print("X, X_LENGTHS", X.shape, len(X_lengths))
+    print("Len df res", len(df_res))
+
+    y = get_indices_and_values(df_res)
+
+    return X, X_lengths, y

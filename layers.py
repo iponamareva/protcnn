@@ -116,6 +116,8 @@ class ProtCNNModel(Model):
     self.ConvInitial = Conv1DCustom(filters=args.num_filters, kernel_size=args.kernel_size, dilation_rate=1)
     self.ResBlock1 = ProtResBlock(args, layer_index=0)
     self.ResBlock2 = ProtResBlock(args, layer_index=1)
+    self.ResBlock3 = ProtResBlock(args, layer_index=2)
+    #self.ResBlock4 = ProtResBlock(args, layer_index=3)
     self.Dense = Dense(NCL, activation='softmax')
     self.args = args
  
@@ -125,6 +127,9 @@ class ProtCNNModel(Model):
     conved = self.ConvInitial((X, X_lengths))
     res = self.ResBlock1((conved, X_lengths), training=training)
     res = self.ResBlock2((res, X_lengths), training=training)
+    ###
+    res = self.ResBlock3((res, X_lengths), training=training)
+    #res = self.ResBlock4((res, X_lengths), training=training)
 
     per_sequence_features = _make_per_sequence_features(res, X_lengths, self.args)
     res = self.Dense(per_sequence_features)

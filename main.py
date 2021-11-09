@@ -21,6 +21,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import Mean
 from tensorflow import GradientTape
 from tensorflow.keras.layers import Conv1D, Add, MaxPooling1D, BatchNormalization
+from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from tensorflow.keras.metrics import Accuracy
 
 from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_info, app_hist
 from model_utils import loss_with_params, accuracy, AccCustomMetric
@@ -46,8 +48,13 @@ args = parser.parse_args()
 print('Loading and preprocessing data', flush=True)
 print("Experiment name:", args.exp_name)
 
-X_train, X_train_lengths, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
-X_val, X_val_lengths, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
+if args.flag == 'D':
+  X_train, X_train_lengths, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
+  X_val, X_val_lengths, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
+elif args.flag = 'C':
+  X_train, X_train_lengths, y_train = preprocess_dfs_only_true("train", max_length=args.max_length, alpha=args.alpha)
+  X_val, X_val_lengths, y_val = preprocess_dfs_only_true("dev", max_length=args.max_length, alpha=args.alpha)
+
 train_dataset, TRAIN_SIZE = make_dataset(X_train, X_train_lengths, y_train, args=args)
 val_dataset, VAL_SIZE = make_dataset(X_val, X_val_lengths, y_val, args=args)
 
@@ -70,10 +77,16 @@ for batch in val_dataset.take(1):
   print('COUNT PARAMS', model.count_params())
   
 optimizer = Adam(learning_rate=args.learning_rate)
-ce_loss_fn = loss_with_params(args.true_prop)
+if args.flag == 'D':
+  ce_loss_fn = loss_with_params(args.true_prop)
+  train_acc_metric = AccCustomMetric()
+  val_acc_metric = AccCustomMetric()
+elif args.flag == 'C':
+  ce_loss_fn = SparseCategoricalCrossentropy()
+  train_acc_metric = Accuracy()
+  val_acc_metric = Accuracy()
+ 
 loss_metric = Mean()
-train_acc_metric = AccCustomMetric()
-val_acc_metric = AccCustomMetric()
 
 for epoch in range(args.epochs):
   print("Start of epoch %d" % (epoch,))
