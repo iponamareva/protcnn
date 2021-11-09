@@ -26,7 +26,7 @@ from tensorflow.keras.metrics import Accuracy
 
 from utils import dump_history, dump_histories, plot, plot_history, make_plots, make_training_info, app_hist
 from model_utils import loss_with_params, accuracy, AccCustomMetric
-from preprocessing import preprocess_dfs,  make_dataset
+from preprocessing import preprocess_dfs,  make_dataset, preprocess_dfs_only_true, make_dataset_only_true
 from constants import *
 from layers import ProtCNNModel
 
@@ -42,6 +42,7 @@ parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
 parser.add_argument("-ml", "--max-length", nargs="?", type=int, default=100)
 parser.add_argument("-ks", "--kernel-size", nargs="?", type=int, default=5)
 parser.add_argument("-bs", "--batch-size", nargs="?", type=int, default=256)
+parser.add_argument("-fl", "--flag", nargs="?", type=char, default="D")
 
 args = parser.parse_args()
 
@@ -51,12 +52,15 @@ print("Experiment name:", args.exp_name)
 if args.flag == 'D':
   X_train, X_train_lengths, y_train = preprocess_dfs("train", max_length=args.max_length, alpha=args.alpha)
   X_val, X_val_lengths, y_val = preprocess_dfs("dev", max_length=args.max_length, alpha=args.alpha)
+  train_dataset, TRAIN_SIZE = make_dataset(X_train, X_train_lengths, y_train, args=args)
+  val_dataset, VAL_SIZE = make_dataset(X_val, X_val_lengths, y_val, args=args)
+
 elif args.flag = 'C':
   X_train, X_train_lengths, y_train = preprocess_dfs_only_true("train", max_length=args.max_length, alpha=args.alpha)
   X_val, X_val_lengths, y_val = preprocess_dfs_only_true("dev", max_length=args.max_length, alpha=args.alpha)
 
-train_dataset, TRAIN_SIZE = make_dataset(X_train, X_train_lengths, y_train, args=args)
-val_dataset, VAL_SIZE = make_dataset(X_val, X_val_lengths, y_val, args=args)
+  train_dataset, TRAIN_SIZE = make_dataset_only_true(X_train, X_train_lengths, y_train, args=args)
+  val_dataset, VAL_SIZE = make_dataset_only_true(X_val, X_val_lengths, y_val, args=args)
 
 print("TRAIN_SIZE:", TRAIN_SIZE, "VAL_SIZE:", VAL_SIZE)
 

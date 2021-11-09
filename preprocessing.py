@@ -41,6 +41,12 @@ def make_dataset(X, X_lengths, y, args):
     return dataset, len(X_lengths)
 
 
+def make_dataset_only_true(X, X_lengths, y, args):
+    dataset = Dataset.from_tensor_slices((X, X_lengths, y))
+    dataset = dataset.batch(args.batch_size)
+    return dataset, len(X_lengths)
+
+
 def process_activations_dict():
     d = {}
     filename = google_data_path + 'blundell_pfam_32_vocab.json'
