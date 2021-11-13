@@ -42,7 +42,8 @@ parser.add_argument("-al", "--alpha", nargs="?", type=float, default=1.0)
 parser.add_argument("-ml", "--max-length", nargs="?", type=int, default=100)
 parser.add_argument("-ks", "--kernel-size", nargs="?", type=int, default=5)
 parser.add_argument("-bs", "--batch-size", nargs="?", type=int, default=256)
-parser.add_argument("-fl", "--flag", nargs="?", type=char, default="D")
+parser.add_argument("-fl", "--flag", nargs="?", type=str, default="D")
+parser.add_argument("-ln", "--layers-num", nargs="?", type=int, default=2)
 
 args = parser.parse_args()
 
@@ -55,7 +56,7 @@ if args.flag == 'D':
   train_dataset, TRAIN_SIZE = make_dataset(X_train, X_train_lengths, y_train, args=args)
   val_dataset, VAL_SIZE = make_dataset(X_val, X_val_lengths, y_val, args=args)
 
-elif args.flag = 'C':
+elif args.flag == 'C':
   X_train, X_train_lengths, y_train = preprocess_dfs_only_true("train", max_length=args.max_length, alpha=args.alpha)
   X_val, X_val_lengths, y_val = preprocess_dfs_only_true("dev", max_length=args.max_length, alpha=args.alpha)
 

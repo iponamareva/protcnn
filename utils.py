@@ -16,7 +16,7 @@ def app_hist(f, losses, accs, val_losses, val_accs, th, th2):
     return losses, accs, val_losses, val_accs
 
 
-def make_training_log(args):
+def make_training_info(args):
   filename = args.exp_name + ".log"
   filepath = os.path.join(LOG_DIR, filename)
   d = vars(args)
@@ -26,11 +26,20 @@ def make_training_log(args):
         print(key, "\t", d[key], file=f)
 
     print("NCL\t", NCL)
+    print("DIL\t", DIL_RATES)
 
 def renorm(v, alpha=1):
     p = np.power(v, [alpha])
     return p / p.sum()
 
+def renorm_from_sigmoid(v, alpha=1):
+    v = np.array(v)
+    x = np.where(v > 0.9999999999999, 0.9999999999999, v)
+    x = np.where(x != -1, np.log(x/(1-x)), x)
+    x = x * alpha
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+    
 # for 1 model
 def dump_history(history, path):
     loss = history.history["loss"]
